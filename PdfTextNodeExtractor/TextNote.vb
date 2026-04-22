@@ -1,0 +1,131 @@
+Imports Microsoft.VisualBasic
+Imports System
+Imports System.IO
+
+Namespace PdfTextNoteExtractor
+	''' <summary>
+	''' Holds information for a single text annotation
+	''' </summary>
+	Public Structure TextNote
+		Public Color As System.Drawing.Color
+		Public Note As String
+		Public CreationTime As DateTime
+		Public Page As Integer
+		Public Author As String
+
+'INSTANT VB NOTE: The parameter author was renamed since Visual Basic will not uniquely identify class members when parameters have the same name:
+'INSTANT VB NOTE: The parameter note was renamed since Visual Basic will not uniquely identify class members when parameters have the same name:
+'INSTANT VB NOTE: The parameter color was renamed since Visual Basic will not uniquely identify class members when parameters have the same name:
+'INSTANT VB NOTE: The parameter creationTime was renamed since Visual Basic will not uniquely identify class members when parameters have the same name:
+'INSTANT VB NOTE: The parameter page was renamed since Visual Basic will not uniquely identify class members when parameters have the same name:
+		Public Sub New(ByVal author_Renamed As String, ByVal note_Renamed As String, ByVal color_Renamed As System.Drawing.Color, ByVal creationTime_Renamed As DateTime, ByVal page_Renamed As Integer)
+			Me.Author = author_Renamed
+			Me.Note = note_Renamed
+			Me.Color = color_Renamed
+			Me.CreationTime = creationTime_Renamed
+			Me.Page = page_Renamed
+		End Sub
+	End Structure
+
+	''' <summary>
+	''' Compare the TextNote objects by their creation time.
+	''' </summary>
+	Public Class TextNoteComparer : Implements System.Collections.IComparer
+		Public Sub New()
+		End Sub
+
+		Public Function Compare(ByVal x As Object, ByVal y As Object) As Integer Implements System.Collections.IComparer.Compare
+			If x Is Nothing OrElse y Is Nothing Then
+			Return -1
+			End If
+
+			Dim n1 As TextNote = CType(x, TextNote)
+			Dim n2 As TextNote = CType(y, TextNote)
+
+			Dim val As Integer = n1.CreationTime.CompareTo(n2.CreationTime)
+			If val = 0 Then
+			val = n1.Page.CompareTo(n2.Page)
+			End If
+			Return val
+		End Function
+
+	End Class
+
+	''' <summary>
+	''' This class creates a simple HTML file containing the PDF notes.
+	''' </summary>
+	Public Class TextNoteReportGenerator : Implements IDisposable
+		Private _writer As StreamWriter
+
+		Public Sub New(ByVal fileName As String)
+			_writer = New StreamWriter(fileName, False, System.Text.Encoding.UTF8)
+			WriteStartDocument()
+		End Sub
+
+		Protected Overrides Sub Finalize()
+			Dispose(False)
+		End Sub
+
+		Public Sub Dispose() Implements IDisposable.Dispose
+			Dispose(True)
+			GC.SuppressFinalize(Me)
+		End Sub
+
+        Protected Overridable Sub Dispose(ByVal disposing As Boolean)
+            Close()
+        End Sub
+
+        Public Sub Close()
+            If Not _writer Is Nothing Then
+                WriteEndDocument()
+                _writer.Flush()
+                _writer.Close()
+                _writer = Nothing
+            End If
+        End Sub
+
+        Public Sub WriteTextNote(ByVal note As TextNote)
+            If _writer Is Nothing Then
+                Return
+            End If
+
+            Dim bgColor As String = GetColorHexValue(note.Color)
+
+            _writer.WriteLine("    <table style=""width: 580px; border: 2px outset; background-color: {0}"">", bgColor)
+            _writer.WriteLine("        <tr>")
+            _writer.WriteLine("            <td style=""width: 300px;"">Author:&nbsp; {0}</td>", note.Author)
+            _writer.WriteLine("            <td style=""width: 200px;"">Date:&nbsp; {0} {1}</td>", note.CreationTime.ToShortDateString(), note.CreationTime.ToShortTimeString())
+            _writer.WriteLine("            <td style=""width: 80px;"">Page:&nbsp; {0}</td>", note.Page.ToString())
+            _writer.WriteLine("        </tr>")
+            _writer.WriteLine("        <tr>")
+            _writer.WriteLine("            <td colspan=""3"">{0}</td>", note.Note)
+            _writer.WriteLine("        </tr>")
+            _writer.WriteLine("    </table>")
+        End Sub
+
+        Private Sub WriteStartDocument()
+            If _writer Is Nothing Then
+                Return
+            End If
+
+            _writer.WriteLine("<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"">")
+            _writer.WriteLine("<html xmlns=""http://www.w3.org/1999/xhtml"" >")
+            _writer.WriteLine("<head>")
+            _writer.WriteLine("    <title>PDF Text Note Report</title>")
+            _writer.WriteLine("</head>")
+            _writer.WriteLine("<body style=""font-size: 10pt; color: black; font-family: Verdana, Sans-Serif"">")
+            _writer.WriteLine("    <p style=""font-size: 24pt; color: black; font-family: Arial, Sans-Serif"">PDF Text Note Report</p>")
+        End Sub
+
+        Private Sub WriteEndDocument()
+            If _writer Is Nothing Then
+                Return
+            End If
+            _writer.Write("    <p>Generated by PDF Text Note Extractor demo.</p>" & Constants.vbCrLf & "</body>" & Constants.vbCrLf & "</html>")
+        End Sub
+
+        Private Function GetColorHexValue(ByVal color As System.Drawing.Color) As String
+            Return "#" & color.R.ToString("X2") + color.G.ToString("X2") + color.B.ToString("X2")
+        End Function
+    End Class
+End Namespace
